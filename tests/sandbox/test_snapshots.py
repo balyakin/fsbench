@@ -1,5 +1,8 @@
 import socket
+import tempfile
 from pathlib import Path
+
+import pytest
 
 from fsbench.sandbox.snapshots import build_snapshot, compare_snapshots
 
@@ -36,15 +39,18 @@ def test_compare_snapshots_detects_changes(tmp_path: Path) -> None:
 
 def test_build_snapshot_records_socket_without_opening(tmp_path: Path) -> None:
     # ARRANGE
-    socket_path = tmp_path / "agent.sock"
-    server = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-    server.bind(str(socket_path))
-
-    try:
-        # ACT
-        snapshot = build_snapshot(tmp_path)
-    finally:
-        server.close()
+    with tempfile.TemporaryDirectory(prefix="fsb-", dir="/private/tmp") as root:
+        root_path = Path(root)
+        socket_path = root_path / "agent.sock"
+        server = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+        try:
+            server.bind(str(socket_path))
+            # ACT
+            snapshot = build_snapshot(root_path)
+        except OSError as error:
+            pytest.skip(f"cannot create unix socket: {error}")
+        finally:
+            server.close()
 
     # ASSERT
     assert "agent.sock" in snapshot.files

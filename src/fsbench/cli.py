@@ -32,10 +32,13 @@ def doctor(
         "--agents",
         help="Comma-separated agents to inspect.",
     ),
+    agent_env: Optional[AgentEnvMode] = typer.Option(None, "--agent-env", help="Agent environment mode."),
     config: Optional[Path] = typer.Option(None, "--config", help="Path to fsbench.toml."),
 ) -> None:
     """Checks local runtime, tools, sandbox, and adapter availability."""
     settings = load_settings(config)
+    if agent_env is not None:
+        settings = settings.model_copy(update={"agent_env": agent_env})
     result = asyncio.run(run_doctor(settings=settings, agents=_parse_agents(agents)))
     _echo_doctor(result.items)
     if not result.ok:

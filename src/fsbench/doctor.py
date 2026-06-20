@@ -3,14 +3,15 @@
 import asyncio
 import hashlib
 import importlib.metadata
+import os
 import sys
 from pathlib import Path
-from typing import Dict, List, Sequence, Tuple
+from typing import Dict, List, Optional, Sequence, Tuple
 
 from pydantic import BaseModel, ConfigDict
 
 from fsbench.adapters.registry import resolve_adapter_target
-from fsbench.models import FsbenchSettings, SandboxKind
+from fsbench.models import AgentEnvMode, FsbenchSettings, SandboxKind
 from fsbench.sandbox.environment import binary_path, resolved_utf8_locale, safe_path
 from fsbench.store import canonical_json
 
@@ -40,7 +41,7 @@ class DoctorResult(BaseModel):
 async def run_doctor(settings: FsbenchSettings, agents: Sequence[str]) -> DoctorResult:
     """Runs fsbench doctor checks without starting benchmarks."""
     items: List[DoctorItem] = []
-    python_ok = sys.version_info.major == 3 and sys.version_info.minor == 12
+    python_ok = sys.version_info.major == 3 and sys.version_info.minor >= 12
     items.append(
         DoctorItem(
             name="python",
@@ -84,16 +85,16 @@ async def run_doctor(settings: FsbenchSettings, agents: Sequence[str]) -> Doctor
         if adapter_name == "oracle":
             items.append(DoctorItem(name=f"agent:{agent}", status="ok", detail="built-in", required=False))
             continue
-        status, detail = await binary_status(adapter_name)
+        status, detail = await binary_status(adapter_name, search_path=_agent_search_path(settings))
         status = "skip" if status == "fail" else status
         items.append(DoctorItem(name=f"agent:{agent}", status=status, detail=detail, required=False))
     ok = all(item.status == "ok" for item in items if item.required)
     return DoctorResult(ok=ok, items=items)
 
 
-async def binary_status(binary: str) -> Tuple[str, str]:
+async def binary_status(binary: str, search_path: Optional[str] = None) -> Tuple[str, str]:
     """Returns binary availability and safe version detail."""
-    path = binary_path(binary)
+    path = binary_path(binary, search_path)
     if path is None:
         return "fail", "not found"
     version = await probe_binary_version(path, ["--version"])
@@ -186,7 +187,12 @@ async def build_env_manifest(settings: FsbenchSettings, agents: Sequence[str]) -
             manifest[f"agent:{agent}:path"] = "built-in"
             manifest[f"agent:{agent}:version"] = "oracle"
             continue
-        await _add_binary_manifest(manifest, prefix=f"agent:{agent}", binary=adapter_name)
+        await _add_binary_manifest(
+            manifest,
+            prefix=f"agent:{agent}",
+            binary=adapter_name,
+            search_path=_agent_search_path(settings),
+        )
     return manifest
 
 
@@ -195,8 +201,19 @@ async def build_env_manifest_hash(settings: FsbenchSettings, agents: Sequence[st
     return hashlib.sha256(canonical_json(await build_env_manifest(settings, agents)).encode("utf-8")).hexdigest()
 
 
-async def _add_binary_manifest(manifest: Dict[str, str], prefix: str, binary: str) -> None:
-    path = binary_path(binary)
+def _agent_search_path(settings: FsbenchSettings) -> Optional[str]:
+    if settings.agent_env == AgentEnvMode.HOST:
+        return os.environ.get("PATH")
+    return None
+
+
+async def _add_binary_manifest(
+    manifest: Dict[str, str],
+    prefix: str,
+    binary: str,
+    search_path: Optional[str] = None,
+) -> None:
+    path = binary_path(binary, search_path)
     manifest[f"{prefix}:path"] = path or "missing"
     manifest[f"{prefix}:version"] = "missing" if path is None else await probe_binary_version(path, ["--version"])
 

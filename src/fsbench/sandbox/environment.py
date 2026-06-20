@@ -99,6 +99,6 @@ def build_check_env(workspace_root: Path, hypothesis_seed: int) -> Dict[str, str
     return env
 
 
-def binary_path(name: str) -> Optional[str]:
-    """Returns an executable path using fsbench's safe PATH only."""
-    return shutil.which(name, path=safe_path())
+def binary_path(name: str, search_path: Optional[str] = None) -> Optional[str]:
+    """Returns an executable path using the given PATH or fsbench's safe PATH."""
+    return shutil.which(name, path=search_path if search_path is not None else safe_path())

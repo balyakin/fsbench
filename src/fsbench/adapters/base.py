@@ -85,18 +85,23 @@ class CliAgentAdapter:
     binary = ""
     version_args = ("--version",)
 
+    def _binary_path(self, env: Optional[Dict[str, str]] = None) -> Optional[str]:
+        if env is not None and env.get("PATH"):
+            return binary_path(self.binary, env["PATH"])
+        return binary_path(self.binary)
+
     async def available(self) -> Tuple[bool, str]:
         """Checks whether the adapter binary exists on the safe PATH."""
-        executable = binary_path(self.binary)
+        executable = self._binary_path()
         if executable is None:
             return False, f"{self.binary} binary not found"
         return True, executable
 
     async def smoke_test(self, env: Dict[str, str], provider_profile: Optional[ProviderProfile]) -> Tuple[bool, str]:
         """Checks binary availability and required provider env presence."""
-        available, reason = await self.available()
-        if not available:
-            return False, reason
+        executable = self._binary_path(env)
+        if executable is None:
+            return False, f"{self.binary} binary not found"
         if provider_profile is not None:
             missing = [name for name in provider_profile.required_env if name not in env]
             if missing:
@@ -108,7 +113,7 @@ class CliAgentAdapter:
 
     async def version(self, env: Dict[str, str], scrubber: SecretScrubber) -> str:
         """Returns a scrubbed version string or `version_unknown`."""
-        executable = binary_path(self.binary)
+        executable = self._binary_path(env)
         if executable is None:
             return "version_unknown"
         try:
@@ -144,7 +149,7 @@ class CliAgentAdapter:
         scrubber: SecretScrubber,
     ) -> AgentResult:
         """Runs the CLI adapter and returns sanitized execution data."""
-        executable = binary_path(self.binary)
+        executable = self._binary_path(env)
         if executable is None:
             raise AdapterUnavailableError(f"{self.binary} binary not found")
         prompt = (workspace_root / "task.md").read_text(encoding="utf-8")

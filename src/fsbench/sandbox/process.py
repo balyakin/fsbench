@@ -130,14 +130,23 @@ def _build_preexec(limits: Optional[Limits]) -> Optional[Callable[[], Any]]:
     def set_limits() -> None:
         import resource
 
-        resource.setrlimit(resource.RLIMIT_CORE, (0, 0))
-        resource.setrlimit(resource.RLIMIT_CPU, (limits.cpu_s, limits.cpu_s + 1))
+        _set_process_limit(resource.RLIMIT_CORE, 0, 0)
+        _set_process_limit(resource.RLIMIT_CPU, limits.cpu_s, limits.cpu_s + 1)
         mem_bytes = limits.mem_mb * 1024 * 1024
-        resource.setrlimit(resource.RLIMIT_AS, (mem_bytes, mem_bytes))
+        _set_process_limit(resource.RLIMIT_AS, mem_bytes, mem_bytes)
         fsize_bytes = limits.fsize_mb * 1024 * 1024
-        resource.setrlimit(resource.RLIMIT_FSIZE, (fsize_bytes, fsize_bytes))
+        _set_process_limit(resource.RLIMIT_FSIZE, fsize_bytes, fsize_bytes)
 
     return set_limits
+
+
+def _set_process_limit(resource_name: int, soft_limit: int, hard_limit: int) -> None:
+    import resource
+
+    try:
+        resource.setrlimit(resource_name, (soft_limit, hard_limit))
+    except (OSError, ValueError):
+        return
 
 
 async def _read_stream(

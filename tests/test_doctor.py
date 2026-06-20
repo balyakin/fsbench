@@ -52,7 +52,7 @@ async def test_env_manifest_uses_agent_alias_target(monkeypatch) -> None:
     async def fake_probe_binary_version(path: str, args) -> str:
         return "1.0.0"
 
-    monkeypatch.setattr(doctor_module, "binary_path", lambda binary: f"/bin/{binary}")
+    monkeypatch.setattr(doctor_module, "binary_path", lambda binary, search_path=None: f"/bin/{binary}")
     monkeypatch.setattr(doctor_module, "probe_binary_version", fake_probe_binary_version)
     monkeypatch.setattr(doctor_module, "_dependency_version", lambda name: "installed")
 
@@ -83,7 +83,7 @@ async def test_probe_binary_version_kills_process_on_timeout(monkeypatch) -> Non
     async def fake_create_subprocess_exec(*args, **kwargs):
         return process
 
-    async def fake_wait_for(coroutine, timeout: float):
+    async def fake_wait_for(coroutine, **kwargs):
         coroutine.close()
         raise asyncio.TimeoutError
 
