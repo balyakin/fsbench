@@ -103,9 +103,8 @@ pi_kimi27 = "pi:kimi-k2.7"
 opencode_kimi25 = "opencode:moonshot/kimi-k2.5"
 opencode_kimi26 = "opencode:moonshot/kimi-k2.6"
 opencode_kimi27 = "opencode:moonshot/kimi-k2.7"
-codex_kimi25 = "codex:kimi-k2.5"
-codex_kimi26 = "codex:kimi-k2.6"
-codex_kimi27 = "codex:kimi-k2.7"
+codex_gpt52 = "codex:gpt-5.2"
+codex_gpt55 = "codex:gpt-5.5"
 ```
 
 ```bash
@@ -118,6 +117,17 @@ fsbench run \
 
 fsbench report --run-dir runs/kimi-compare
 fsbench leaderboard --report runs/kimi-compare/report.json
+```
+
+Run Codex model comparisons separately with OpenAI models:
+
+```bash
+fsbench run \
+  --agent-env host \
+  --agents codex_gpt52,codex_gpt55 \
+  --tasks tasks/open \
+  --repeats 5 \
+  --run-dir runs/codex-gpt-compare
 ```
 
 You can put the environment mode in `fsbench.toml` instead of passing `--agent-env host` every time:
