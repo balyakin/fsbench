@@ -1,0 +1,2 @@
+Cost: $0.034
+Tokens: 100 sent, 40 received

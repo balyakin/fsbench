@@ -1,0 +1,35 @@
+id: demo-calculator-move
+version: "0.1.0"
+tier: 1
+category: single_file_bugfix
+description: "Fix a calculator helper so addition returns the mathematical sum for visible and edge cases."
+timeout_s: 120
+editable_files:
+  - app.py
+required_checks:
+  - pytest_behavior
+  - ast_defines_solve
+  - diff_scope_limit
+  - no_test_tamper
+checks:
+  - name: pytest_behavior
+    type: pytest
+    check_timeout_s: 30
+    inject:
+      - _fsbench_hidden_test_behavior.py
+    args:
+      - tests
+      - _fsbench_hidden_test_behavior.py
+  - name: ast_defines_solve
+    type: ast_defines
+    symbol: solve
+    kind: function
+    in_file: app.py
+  - name: diff_scope_limit
+    type: diff_scope
+    max_files_changed: 1
+    forbid_changes:
+      - tests/**
+      - task.md
+  - name: no_test_tamper
+    type: no_test_tamper

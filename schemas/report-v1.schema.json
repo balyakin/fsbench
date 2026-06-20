@@ -1,0 +1,224 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.invalid/fsbench/report-v1.schema.json",
+  "title": "fsbench report v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "run_id", "generated_at", "suite", "metadata", "runs", "aggregates"],
+  "properties": {
+    "schema_version": { "type": "string" },
+    "run_id": { "type": "string" },
+    "generated_at": { "type": "string" },
+    "suite": { "$ref": "#/$defs/suiteRef" },
+    "metadata": { "type": "object", "additionalProperties": { "type": "string" } },
+    "runs": { "type": "array", "items": { "$ref": "#/$defs/runResult" } },
+    "aggregates": { "type": "array", "items": { "$ref": "#/$defs/taskAgentAggregate" } }
+  },
+  "$defs": {
+    "runErrorKind": {
+      "type": "string",
+      "enum": [
+        "none",
+        "agent_not_found",
+        "agent_smoke_failed",
+        "timeout",
+        "oom",
+        "sandbox_error",
+        "check_timeout",
+        "check_failed",
+        "check_crash",
+        "harness_crash",
+        "interrupted",
+        "schema_error",
+        "egress_error",
+        "budget_exceeded"
+      ]
+    },
+    "checkType": {
+      "type": "string",
+      "enum": [
+        "ruff",
+        "mypy",
+        "pytest",
+        "ast_defines",
+        "ast_signature",
+        "ast_no_import",
+        "content_present",
+        "content_absent",
+        "file_exists",
+        "file_absent",
+        "diff_scope",
+        "integrity",
+        "no_test_tamper"
+      ]
+    },
+    "agentResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "agent",
+        "agent_version",
+        "exit_code",
+        "timed_out",
+        "duration_s",
+        "cost_usd",
+        "tokens_in",
+        "tokens_out",
+        "stdout_tail",
+        "stderr_tail",
+        "error_kind",
+        "error_detail"
+      ],
+      "properties": {
+        "agent": { "type": "string" },
+        "agent_version": { "type": ["string", "null"] },
+        "exit_code": { "type": ["integer", "null"] },
+        "timed_out": { "type": "boolean" },
+        "duration_s": { "type": "number", "minimum": 0.0 },
+        "cost_usd": { "type": ["number", "null"], "minimum": 0.0 },
+        "tokens_in": { "type": ["integer", "null"], "minimum": 0 },
+        "tokens_out": { "type": ["integer", "null"], "minimum": 0 },
+        "stdout_tail": { "type": "string" },
+        "stderr_tail": { "type": "string" },
+        "error_kind": { "$ref": "#/$defs/runErrorKind" },
+        "error_detail": { "type": ["string", "null"] }
+      }
+    },
+    "checkResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "type",
+        "required",
+        "weight",
+        "passed",
+        "score",
+        "detail",
+        "duration_s",
+        "error_kind",
+        "error_detail"
+      ],
+      "properties": {
+        "name": { "type": "string" },
+        "type": { "$ref": "#/$defs/checkType" },
+        "required": { "type": "boolean" },
+        "weight": { "type": "number", "exclusiveMinimum": 0.0 },
+        "passed": { "type": "boolean" },
+        "score": { "type": "number", "minimum": 0.0, "maximum": 1.0 },
+        "detail": { "type": "object" },
+        "duration_s": { "type": "number", "minimum": 0.0 },
+        "error_kind": { "$ref": "#/$defs/runErrorKind" },
+        "error_detail": { "type": ["string", "null"] }
+      }
+    },
+    "suiteRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "version",
+        "corpus_git_sha",
+        "corpus_ref_kind",
+        "corpus_dirty",
+        "calibration_date",
+        "calibration_agents"
+      ],
+      "properties": {
+        "name": { "type": "string" },
+        "version": { "type": "string", "pattern": "^\\d+\\.\\d+\\.\\d+$" },
+        "corpus_git_sha": { "type": "string", "pattern": "^[0-9a-f]{40}$" },
+        "corpus_ref_kind": { "type": "string", "enum": ["git", "unknown"] },
+        "corpus_dirty": { "type": "boolean" },
+        "calibration_date": { "type": ["string", "null"] },
+        "calibration_agents": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "runResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "run_id",
+        "task_id",
+        "task_version",
+        "agent",
+        "repeat",
+        "seed",
+        "agent_result",
+        "checks",
+        "passed",
+        "score",
+        "error_kind",
+        "error_detail",
+        "started_at",
+        "finished_at",
+        "artifacts_dir",
+        "task_version_hash",
+        "env_manifest_hash"
+      ],
+      "properties": {
+        "schema_version": { "type": "string" },
+        "run_id": { "type": "string" },
+        "task_id": { "type": "string" },
+        "task_version": { "type": "string" },
+        "agent": { "type": "string" },
+        "repeat": { "type": "integer", "minimum": 0 },
+        "seed": { "type": "integer", "minimum": 0 },
+        "agent_result": { "$ref": "#/$defs/agentResult" },
+        "checks": { "type": "array", "items": { "$ref": "#/$defs/checkResult" } },
+        "passed": { "type": "boolean" },
+        "score": { "type": "number", "minimum": 0.0, "maximum": 1.0 },
+        "error_kind": { "$ref": "#/$defs/runErrorKind" },
+        "error_detail": { "type": ["string", "null"] },
+        "started_at": { "type": "string" },
+        "finished_at": { "type": "string" },
+        "artifacts_dir": { "type": ["string", "null"] },
+        "task_version_hash": { "type": "string" },
+        "env_manifest_hash": { "type": "string" }
+      }
+    },
+    "taskAgentAggregate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "task_id",
+        "agent",
+        "repeats",
+        "successes",
+        "pass_at_1",
+        "pass_at_k",
+        "pass_all_at_k",
+        "pass_at_1_ci95",
+        "mean_score",
+        "score_std_dev",
+        "mean_cost_usd",
+        "dollars_per_solve",
+        "mean_duration_s"
+      ],
+      "properties": {
+        "task_id": { "type": "string" },
+        "agent": { "type": "string" },
+        "repeats": { "type": "integer", "minimum": 1 },
+        "successes": { "type": "integer", "minimum": 0 },
+        "pass_at_1": { "type": "number", "minimum": 0.0, "maximum": 1.0 },
+        "pass_at_k": { "type": "object", "additionalProperties": { "type": "number" } },
+        "pass_all_at_k": { "type": "object", "additionalProperties": { "type": "number" } },
+        "pass_at_1_ci95": {
+          "type": "array",
+          "prefixItems": [
+            { "type": "number", "minimum": 0.0, "maximum": 1.0 },
+            { "type": "number", "minimum": 0.0, "maximum": 1.0 }
+          ],
+          "minItems": 2,
+          "maxItems": 2
+        },
+        "mean_score": { "type": "number", "minimum": 0.0, "maximum": 1.0 },
+        "score_std_dev": { "type": ["number", "null"], "minimum": 0.0 },
+        "mean_cost_usd": { "type": ["number", "null"], "minimum": 0.0 },
+        "dollars_per_solve": { "type": ["number", "null"], "minimum": 0.0 },
+        "mean_duration_s": { "type": "number", "minimum": 0.0 }
+      }
+    }
+  }
+}

@@ -1,0 +1,36 @@
+name: ci
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  test:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python -m pip install -e ".[dev]"
+      - run: ruff format --check
+      - run: ruff check
+      - run: mypy --strict src tests
+      - run: coverage run -m pytest
+      - run: coverage report
+      - run: fsbench validate --tasks tasks/open
+      - run: fsbench validate --changed
+        continue-on-error: true
+      - run: fsbench run --agents oracle --tasks tasks/open --repeats 1 --dry-run
+      - run: fsbench run --agents oracle --tasks tasks/open --repeats 1 --run-dir runs/oracle-ci
+      - run: fsbench inspect --run-dir runs/oracle-ci --task demo-calculator-move --agent oracle --repeat 0
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: fsbench-runs-${{ matrix.os }}
+          path: runs/

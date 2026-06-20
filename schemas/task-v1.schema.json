@@ -1,0 +1,115 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.invalid/fsbench/task-v1.schema.json",
+  "title": "fsbench task v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["id", "version", "tier", "category", "description", "required_checks", "checks"],
+  "properties": {
+    "id": { "type": "string", "pattern": "^[a-z0-9][a-z0-9-]{2,79}$" },
+    "version": { "type": "string", "pattern": "^\\d+\\.\\d+\\.\\d+$" },
+    "tier": { "type": "integer", "minimum": 1, "maximum": 5 },
+    "category": {
+      "type": "string",
+      "enum": [
+        "single_file_bugfix",
+        "cross_file_refactor",
+        "api_preserving_rewrite",
+        "concurrency_correctness",
+        "performance_bound",
+        "property_spec_impl",
+        "dependency_surgery",
+        "backward_compat",
+        "adversarial_decoy",
+        "subtle_semantics"
+      ]
+    },
+    "description": { "type": "string", "minLength": 20, "maxLength": 500 },
+    "timeout_s": { "type": "integer", "minimum": 10, "maximum": 3600, "default": 300 },
+    "editable_files": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/relativePath" },
+      "default": []
+    },
+    "limits": { "$ref": "#/$defs/limits" },
+    "required_checks": {
+      "type": "array",
+      "items": { "type": "string" },
+      "minItems": 1
+    },
+    "checks": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/checkSpec" },
+      "minItems": 1,
+      "maxItems": 20
+    }
+  },
+  "$defs": {
+    "relativePath": {
+      "type": "string",
+      "pattern": "^(?!/)(?!.*(?:^|/)\\.\\.(?:/|$))(?!.*\\\\)(?!\\.?$).+"
+    },
+    "relativeGlob": {
+      "type": "string",
+      "pattern": "^(?!/)(?!.*(?:^|/)\\.\\.(?:/|$))(?!.*\\\\).+"
+    },
+    "limits": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "cpu_s": { "type": "integer", "minimum": 1, "maximum": 3600, "default": 300 },
+        "mem_mb": { "type": "integer", "minimum": 128, "maximum": 65536, "default": 2048 },
+        "nproc": { "type": "integer", "minimum": 16, "maximum": 4096, "default": 256 },
+        "fsize_mb": { "type": "integer", "minimum": 16, "maximum": 8192, "default": 256 }
+      }
+    },
+    "checkType": {
+      "type": "string",
+      "enum": [
+        "ruff",
+        "mypy",
+        "pytest",
+        "ast_defines",
+        "ast_signature",
+        "ast_no_import",
+        "content_present",
+        "content_absent",
+        "file_exists",
+        "file_absent",
+        "diff_scope",
+        "integrity",
+        "no_test_tamper"
+      ]
+    },
+    "checkSpec": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "type"],
+      "properties": {
+        "name": { "type": "string", "pattern": "^[a-z][a-z0-9_]{2,79}$" },
+        "type": { "$ref": "#/$defs/checkType" },
+        "weight": { "type": "number", "exclusiveMinimum": 0.0, "maximum": 100.0, "default": 1.0 },
+        "check_timeout_s": { "type": "integer", "minimum": 1, "maximum": 1800, "default": 60 },
+        "args": { "type": "array", "items": { "type": "string" }, "default": [] },
+        "inject": { "type": "array", "items": { "$ref": "#/$defs/relativePath" }, "default": [] },
+        "strict": { "type": "boolean", "default": false },
+        "allow": { "type": "integer", "minimum": 0, "maximum": 100000, "default": 0 },
+        "threshold": { "type": "integer", "minimum": 1, "maximum": 100000, "default": 10 },
+        "symbol": { "type": ["string", "null"] },
+        "kind": { "type": ["string", "null"], "enum": ["function", "class", "method", null] },
+        "in_file": { "anyOf": [{ "$ref": "#/$defs/relativePath" }, { "type": "null" }] },
+        "signature": { "type": ["string", "null"] },
+        "module": {
+          "type": ["string", "null"],
+          "pattern": "^[A-Za-z_][A-Za-z0-9_]*(\\.[A-Za-z_][A-Za-z0-9_]*)*$"
+        },
+        "names": { "type": "array", "items": { "type": "string" }, "default": [] },
+        "forbid_in_globs": { "type": "array", "items": { "$ref": "#/$defs/relativeGlob" }, "default": [] },
+        "path": { "anyOf": [{ "$ref": "#/$defs/relativePath" }, { "type": "null" }] },
+        "pattern": { "type": ["string", "null"] },
+        "max_files_changed": { "type": ["integer", "null"], "minimum": 0, "maximum": 100 },
+        "forbid_changes": { "type": "array", "items": { "$ref": "#/$defs/relativeGlob" }, "default": [] }
+      }
+    }
+  }
+}

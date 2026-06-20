@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>{{ run.task_id }} {{ run.agent }} {{ run.repeat }}</title>
+  <style>
+    body { font-family: system-ui, sans-serif; margin: 24px; color: #202124; background: #ffffff; }
+    table { border-collapse: collapse; width: 100%; margin: 16px 0; }
+    th, td { border: 1px solid #d6d9de; padding: 6px 8px; text-align: left; vertical-align: top; font-size: 14px; }
+    th { background: #f4f6f8; }
+    pre { background: #f7f8fa; border: 1px solid #d6d9de; padding: 12px; overflow: auto; }
+    .ok { color: #137333; font-weight: 600; }
+    .fail { color: #a50e0e; font-weight: 600; }
+  </style>
+</head>
+<body>
+  <h1>{{ run.task_id }} · {{ run.agent }} · repeat {{ run.repeat }}</h1>
+  <p class="{{ 'ok' if run.passed else 'fail' }}">{{ "pass" if run.passed else "fail" }} · score {{ "%.3f"|format(run.score) }}</p>
+
+  <h2>Agent</h2>
+  <table>
+    <tr><th>Version</th><td>{{ run.agent_result.agent_version }}</td></tr>
+    <tr><th>Duration</th><td>{{ "%.2f"|format(run.agent_result.duration_s) }}s</td></tr>
+    <tr><th>Cost</th><td>{{ run.agent_result.cost_usd }}</td></tr>
+    <tr><th>Error</th><td>{{ run.error_kind.value }} {{ run.error_detail or "" }}</td></tr>
+  </table>
+
+  <h2>Checks</h2>
+  <table>
+    <thead><tr><th>Name</th><th>Type</th><th>Required</th><th>Status</th><th>Score</th><th>Detail</th></tr></thead>
+    <tbody>
+    {% for check in run.checks %}
+      <tr>
+        <td>{{ check.name }}</td>
+        <td>{{ check.type.value }}</td>
+        <td>{{ check.required }}</td>
+        <td class="{{ 'ok' if check.passed else 'fail' }}">{{ "pass" if check.passed else "fail" }}</td>
+        <td>{{ "%.3f"|format(check.score) }}</td>
+        <td><pre>{{ check.detail }}</pre></td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+
+  <h2>Changed Files</h2>
+  <pre>{{ changed_files }}</pre>
+  {% if artifacts_dir %}
+    <p><a href="../../../{{ artifacts_dir }}/diff.patch">diff.patch</a> · <a href="../../../{{ artifacts_dir }}/stdout.txt">stdout.txt</a> · <a href="../../../{{ artifacts_dir }}/stderr.txt">stderr.txt</a></p>
+  {% endif %}
+  {% if diff_inline %}
+    <h2>Diff</h2>
+    <pre>{{ diff_inline }}</pre>
+  {% endif %}
+
+  <h2>Stdout Tail</h2>
+  <pre>{{ run.agent_result.stdout_tail }}</pre>
+  <h2>Stderr Tail</h2>
+  <pre>{{ run.agent_result.stderr_tail }}</pre>
+</body>
+</html>

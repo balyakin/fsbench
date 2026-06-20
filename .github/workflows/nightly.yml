@@ -1,0 +1,26 @@
+name: nightly
+
+on:
+  schedule:
+    - cron: "0 3 * * *"
+  workflow_dispatch:
+
+jobs:
+  nightly:
+    runs-on: self-hosted
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python -m pip install -e ".[dev]"
+      - run: ruff format --check
+      - run: ruff check
+      - run: mypy --strict src tests
+      - run: coverage run -m pytest
+      - run: coverage report
+      - run: fsbench validate --tasks tasks/open
+      - run: fsbench run --agents oracle --tasks tasks/open --repeats 1 --run-dir runs/nightly-oracle
+      - run: fsbench run --agents codex,aider,claude --tasks tasks/open/demo-calculator-move --repeats 1 --run-dir runs/nightly-real
+      - run: mutmut run --paths-to-mutate src/fsbench/scoring.py
+      - run: pip-audit

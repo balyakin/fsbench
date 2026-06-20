@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>fsbench {{ report.run_id }}</title>
+  <style>
+    body { font-family: system-ui, sans-serif; margin: 24px; color: #202124; background: #ffffff; }
+    table { border-collapse: collapse; width: 100%; margin: 16px 0; }
+    th, td { border: 1px solid #d6d9de; padding: 6px 8px; text-align: left; font-size: 14px; }
+    th { background: #f4f6f8; }
+    .ok { color: #137333; font-weight: 600; }
+    .fail { color: #a50e0e; font-weight: 600; }
+    .heat { display: inline-block; min-width: 48px; padding: 4px; border-radius: 4px; background: #eef3f8; }
+    a { color: #0b57d0; text-decoration: none; }
+  </style>
+</head>
+<body>
+  <h1>fsbench {{ report.run_id }}</h1>
+  <p>Generated {{ report.generated_at }} · suite {{ report.suite.version }}</p>
+
+  <h2>Leaderboard</h2>
+  <table>
+    <thead><tr><th>Task</th><th>Agent</th><th>pass@1</th><th>Mean score</th><th>Mean duration</th><th>CI95</th></tr></thead>
+    <tbody>
+    {% for aggregate in report.aggregates|sort(attribute="pass_at_1", reverse=true) %}
+      <tr>
+        <td>{{ aggregate.task_id }}</td>
+        <td>{{ aggregate.agent }}</td>
+        <td>{{ "%.3f"|format(aggregate.pass_at_1) }}</td>
+        <td>{{ "%.3f"|format(aggregate.mean_score) }}</td>
+        <td>{{ "%.2f"|format(aggregate.mean_duration_s) }}s</td>
+        <td>{{ "%.3f"|format(aggregate.pass_at_1_ci95[0]) }}..{{ "%.3f"|format(aggregate.pass_at_1_ci95[1]) }}</td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+
+  <h2>Heatmap</h2>
+  <table>
+    <thead><tr><th>Task</th><th>Agent pass@1</th></tr></thead>
+    <tbody>
+    {% for task_id, agents in heatmap.items()|sort %}
+      <tr>
+        <td>{{ task_id }}</td>
+        <td>
+        {% for agent, value in agents.items()|sort %}
+          <span class="heat">{{ agent }} {{ "%.2f"|format(value) }}</span>
+        {% endfor %}
+        </td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+
+  <h2>Cells</h2>
+  <table>
+    <thead><tr><th>Task</th><th>Agent</th><th>Repeat</th><th>Status</th><th>Score</th><th>Cell</th></tr></thead>
+    <tbody>
+    {% for run in report.runs %}
+      {% set key = run.task_id ~ ":" ~ run.agent ~ ":" ~ run.repeat %}
+      <tr>
+        <td>{{ run.task_id }}</td>
+        <td>{{ run.agent }}</td>
+        <td>{{ run.repeat }}</td>
+        <td class="{{ 'ok' if run.passed else 'fail' }}">{{ "pass" if run.passed else "fail" }}</td>
+        <td>{{ "%.3f"|format(run.score) }}</td>
+        <td><a href="{{ cell_links[key] }}">open</a></td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</body>
+</html>
